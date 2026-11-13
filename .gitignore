@@ -1,0 +1,4 @@
+site/
+*.jpg
+!tests/*.jpg
+__pycache__/
