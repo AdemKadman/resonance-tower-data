@@ -1,0 +1,20 @@
+name: publish-lamp-data
+on:
+  schedule: [{cron: "*/10 * * * *"}]   # every 10 min (GitHub may start it a few minutes late)
+  workflow_dispatch:
+permissions: {contents: read, pages: write, id-token: write}
+concurrency: {group: publish, cancel-in-progress: false}
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: {name: github-pages}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y -qq tesseract-ocr > /dev/null
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -q -r requirements.txt
+      - run: python fetch_cloud.py
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: site}
+      - uses: actions/deploy-pages@v4
