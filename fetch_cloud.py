@@ -63,9 +63,25 @@ def parse_float(s):
         return None
 
 
-def axis_fit(labels):
-    pts = [(d["y"] + d["h"] / 2, parse_float(d["text"])) for d in labels if d["x"] < 70 and d["y"] < 140]
-    pts = [(y, v) for y, v in pts if v is not None]
+def grid_rows(path):
+    """y of the dashed green horizontal grid lines in the top band (each axis label is centred on one)."""
+    a = np.asarray(Image.open(path).convert("RGB")).astype(int)
+    green = (a[..., 1] > 90) & (a[..., 0] < 90) & (a[..., 2] < 90)
+    cnt = green[:150, 80:880].sum(axis=1)
+    return [y for y in range(15, 150) if cnt[y] > 60 and cnt[y] >= cnt[y - 1] and cnt[y] >= cnt[y + 1]]
+
+
+def axis_fit(labels, path):
+    """Linear y-pixel → value. Label centres are snapped to the grid line they sit on, so the result does not
+    depend on how tightly the OCR engine draws its text boxes."""
+    rows = grid_rows(path)
+    pts = []
+    for d in labels:
+        v = parse_float(d["text"])
+        if d["x"] < 70 and d["y"] < 140 and v is not None:
+            yc = d["y"] + d["h"] / 2
+            near = min(rows, key=lambda r: abs(r - yc)) if rows else None
+            pts.append((near if near is not None and abs(near - yc) <= 6 else yc, v))
     if len(pts) < 3:
         raise RuntimeError(f"only {len(pts)} axis labels read")
     ys, vs = np.array(pts).T
@@ -95,7 +111,7 @@ def check_geometry(labels):
 
 
 def trace(path, labels):
-    slope, icpt, (ytop, ybot) = axis_fit(labels)
+    slope, icpt, (ytop, ybot) = axis_fit(labels, path)
     check_geometry(labels)
     day0 = first_day(labels)
     a = np.asarray(Image.open(path).convert("RGB")).astype(int)
