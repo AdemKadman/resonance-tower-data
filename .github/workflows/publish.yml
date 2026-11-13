@@ -1,6 +1,7 @@
 name: publish-lamp-data
 on:
-  schedule: [{cron: "3-59/10 * * * *"}]   # every 10 min at :03, :13, … (off the busy round minutes; GitHub may still start late)
+  schedule:
+    - cron: "3-59/10 * * * *"   # every 10 min at :03, :13, … (off the busy round minutes; GitHub may still start late)
   workflow_dispatch:
 permissions: {contents: read, pages: write, id-token: write}
 concurrency: {group: publish, cancel-in-progress: false}
